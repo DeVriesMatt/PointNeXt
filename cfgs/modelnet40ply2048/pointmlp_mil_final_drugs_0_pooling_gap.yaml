@@ -1,0 +1,60 @@
+# GFLOPs  GMACs   Params.(M)
+#  31.36   15.61   13.239
+model:
+  NAME: BaseCls
+  encoder_args:
+    NAME: PointMLPEncoder
+    in_channels: 3
+    points: 1024
+    num_classes: 3
+    embed_dim: 32
+    groups: 1
+    res_expansion: 0.25
+    activation: "relu"
+    bias: False
+    use_xyz: False
+    normalize: "anchor"
+    dim_expansion: [ 2, 2, 2, 1 ]
+    pre_blocks: [ 1, 1, 2, 1 ]
+    pos_blocks: [ 1, 1, 2, 1 ]
+    k_neighbors: [ 24, 24, 24, 24 ]
+    reducers: [ 1, 1, 1, 1 ]
+  cls_args:
+    NAME: ClsHead
+    num_classes: 3
+    in_channels: 256
+    mlps: [ 512, 256 ]
+    norm_args:
+      norm: 'bn1d'
+    is_mil: True
+    pooling: gap
+
+
+lr:
+  0.1
+optimizer:
+  NAME: 'momentum'
+  momentum: 0.9
+  weight_decay: 2.0e-4
+
+sched: cosine
+t_max: 100
+min_lr: 0.005
+warmup_epochs: 0  # Later change to 10?
+
+criterion_args:
+  NAME: SmoothCrossEntropy
+  label_smoothing: 0.2
+
+dataset:
+  common:
+    NAME: Drugs
+    data_dir: /mnt/nvme0n1/Datasets/SingleCellFromNathan_17122021/
+
+
+batch_size: 8
+val_batch_size: 8
+seed: 42
+num_classes: 3
+classes: [0, 1, 2]
+epochs: 100

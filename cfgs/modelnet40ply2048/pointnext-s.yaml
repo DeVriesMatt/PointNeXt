@@ -32,9 +32,13 @@ model:
       act: 'relu'
     norm_args:
       norm: 'bn'
+    is_mil: False
   cls_args: 
     NAME: ClsHead
     num_classes: 40
     mlps: [512, 256]
     norm_args: 
       norm: 'bn1d'
+    is_mil: False
+
+epochs: 250

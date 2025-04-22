@@ -28,9 +28,14 @@ model:
       act: 'relu'
     norm_args:
       norm: 'bn'
-  cls_args: 
+  cls_args:
     NAME: ClsHead
     num_classes: 15
     mlps: [512, 256]
-    norm_args: 
+    norm_args:
       norm: 'bn1d'
+
+dataset:
+  common:
+    data_dir: /mnt/nvme0n1/Datasets/ScanObjectNN/data/h5_files/main_split/
+    batch_size: 32

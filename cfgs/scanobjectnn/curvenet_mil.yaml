@@ -1,0 +1,28 @@
+# FLOPs	GMACs	Params.(M)
+#  4.82	 2.39	 1.803
+# Throughput (ins./s): 402.31050637074657 (v100)
+
+model: 
+  NAME: BaseCls
+  encoder_args:
+    NAME: CurveNetNoDown
+    num_classes: 15
+    in_channels: 3
+    emb_dims: 1024
+    is_mil: True
+  cls_args:
+    NAME: ClsHead
+    num_classes: 15
+    in_channels: 1024
+    mlps: [512,256]
+    norm_args:
+      norm: 'bn1d'
+    is_mil: True
+    pooling: 'additive'
+    enc_type: 'dgcnn'
+
+dataset:
+  common:
+    data_dir: /mnt/nvme0n1/Datasets/ScanObjectNN/data/h5_files/main_split/
+batch_size: 8
+val_batch_size: 8

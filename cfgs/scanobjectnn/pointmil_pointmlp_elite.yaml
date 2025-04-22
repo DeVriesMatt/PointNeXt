@@ -1,0 +1,38 @@
+# GFLOPs  GMACs   Params.(M)
+#  31.36   15.61   13.239
+model:
+  NAME: BaseCls
+  encoder_args:
+    NAME: PointMLPEncoder
+    in_channels: 3
+    points: 1024
+    num_classes: 3
+    embed_dim: 32
+    groups: 1
+    res_expansion: 0.25
+    activation: "relu"
+    bias: False
+    use_xyz: False
+    normalize: "anchor"
+    dim_expansion: [ 2, 2, 2, 1 ]
+    pre_blocks: [ 1, 1, 2, 1 ]
+    pos_blocks: [ 1, 1, 2, 1 ]
+    k_neighbors: [ 24, 24, 24, 24 ]
+    reducers: [ 1, 1, 1, 1 ]
+  cls_args:
+    NAME: ClsHead
+    num_classes: 15
+    in_channels: 256
+    mlps: [ 512, 256 ]
+    norm_args:
+      norm: 'bn1d'
+    is_mil: True
+    pooling: 'additive'
+
+dataset:
+  common:
+    data_dir: /mnt/nvme0n1/Datasets/ScanObjectNN/data/h5_files/main_split/
+    batch_size: 32
+
+batch_size: 8
+val_batch_size: 8

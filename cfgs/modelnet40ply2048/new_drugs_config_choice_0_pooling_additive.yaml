@@ -1,0 +1,31 @@
+# GFLOPs  GMACs   Params.(M)
+#  0.91    0.45    3.473
+# Throughput (ins./s):4212.155113370464
+
+model:
+  NAME: BaseCls
+  encoder_args:
+    NAME: MedPTFeatureExtractor
+    in_channels: 3
+  cls_args:
+    NAME: ClsHead
+    num_classes: 3
+    in_channels: 256
+    mlps: [512, 256]
+    norm_args:
+      norm: 'bn1d'
+    is_mil: True
+    pooling: additive
+
+dataset:
+  common:
+    NAME: Drugs
+    data_dir: /mnt/nvme0n1/Datasets/SingleCellFromNathan_17122021/
+
+
+batch_size: 16
+val_batch_size: 16
+seed: 42
+num_classes: 10
+classes: [0, 1, 2]
+epochs: 100

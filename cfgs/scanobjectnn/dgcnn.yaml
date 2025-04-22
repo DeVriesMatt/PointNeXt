@@ -16,11 +16,23 @@ model:
     dropout: 0.5
     norm_args: {'norm': 'bn'}
     act_args: {'act': 'leakyrelu', 'negative_slope': 0.2}
+
   cls_args:
     NAME: ClsHead
     num_classes: 15
-    mlps: [512, 256]
+    in_channels: 1024
+    mlps: [512,256]
     norm_args:
       norm: 'bn1d'
+    is_mil: True
+    pooling: 'additive'
 
+dataset:
+  common:
+    data_dir: /mnt/nvme0n1/Datasets/ScanObjectNN/data/h5_files/main_split/
+    train:
+      split: train
+    val:
+      split: val
+      num_points: 1024
 

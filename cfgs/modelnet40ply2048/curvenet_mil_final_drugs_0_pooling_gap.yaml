@@ -1,0 +1,52 @@
+# FLOPs	GMACs	Params.(M)
+#  4.82	 2.39	 1.803
+# Throughput (ins./s): 402.31050637074657 (v100)
+
+model: 
+  NAME: BaseCls
+  encoder_args:
+    NAME: CurveNetNoDown
+    in_channels: 3
+    num_classes: 3
+    emb_dims: 1024
+    is_mil: True
+  cls_args:
+    NAME: ClsHead
+    num_classes: 3
+    in_channels: 1024
+    mlps: [512,256]
+    norm_args:
+      norm: 'bn1d'
+    is_mil: True
+    pooling: gap
+    enc_type: 'dgcnn'
+    global_feat: 'mean, max'
+
+lr:
+  0.1
+optimizer:
+  NAME: 'momentum'
+  momentum: 0.9
+  weight_decay: 2.0e-4
+
+sched: cosine
+t_max: 100
+min_lr: 0.005
+warmup_epochs: 0  # Later change to 10?
+
+criterion_args:
+  NAME: SmoothCrossEntropy
+  label_smoothing: 0.2
+
+dataset:
+  common:
+    NAME: Drugs
+    data_dir: /mnt/nvme0n1/Datasets/SingleCellFromNathan_17122021/
+
+
+batch_size: 16
+val_batch_size: 16
+seed: 42
+num_classes: 3
+classes: [0, 1, 2]
+epochs: 100

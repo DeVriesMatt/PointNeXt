@@ -16,7 +16,7 @@ model:
   pre_blocks: [ 2, 2, 2, 2 ]
   pos_blocks: [ 2, 2, 2, 2 ]
   k_neighbors: [ 24, 24, 24, 24 ]
-  reducers: [ 2, 2, 2, 2 ]
+  reducers: [ 1, 1, 1, 1 ]
 
 lr:
   0.1

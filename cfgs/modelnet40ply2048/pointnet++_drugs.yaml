@@ -1,0 +1,72 @@
+# GMACs   Params.(M)
+#  0.84    1.466
+# Throughput (ins./s): 1632.3943616291886 (2080ti, B=48)
+# Throughput (ins./s): 2062.428502574422
+
+model:
+  NAME: BaseCls
+  encoder_args:
+    NAME: PointNet2Encoder
+    in_channels: 3
+    width: null
+    layers: 3
+    use_res: False
+    strides: [2, 4, 1]
+    mlps: [[[64, 64, 128]],  # stage 1: 96
+          [[128, 128, 256]],
+          [[256, 512, 1024]]
+          ] # stage 4: 1024
+    radius: [0.2, 0.4, null]
+    num_samples: [32, 64, null]
+    sampler: fps
+    aggr_args:
+      NAME: 'convpool'
+      feature_type: 'dp_fj'
+      anisotropic: False
+      reduction: 'max'
+    group_args:
+      NAME: 'ballquery'
+      use_xyz: True
+      normalize_dp: False
+    conv_args: 
+      order: conv-norm-act
+    act_args:
+      act: 'relu'
+    norm_args:
+      norm: 'bn'
+  cls_args: 
+    NAME: ClsHead
+    num_classes: 3
+    mlps: [512, 256]
+    norm_args: 
+      norm: 'bn1d'
+
+
+lr:
+  0.1
+optimizer:
+  NAME: 'momentum'
+  momentum: 0.9
+  weight_decay: 2.0e-4
+
+sched: cosine
+t_max: 100
+min_lr: 0.005
+warmup_epochs: 0  # Later change to 10?
+
+criterion_args:
+  NAME: SmoothCrossEntropy
+  label_smoothing: 0.2
+
+dataset:
+  common:
+    NAME: Drugs
+    data_dir: /mnt/nvme0n1/Datasets/SingleCellFromNathan_17122021/
+
+
+batch_size: 16
+val_batch_size: 16
+seed: 42
+num_classes: 3
+classes: [0, 1, 2]
+epochs: 100

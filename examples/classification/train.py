@@ -39,11 +39,11 @@ def write_to_csv(oa, macc, accs, best_epoch, cfg, write_header=True):
         f.close()
 
 
-def print_cls_results(oa, macc, accs, epoch, cfg):
+def print_cls_results(oa, macc, accs, epoch, cfg, f1):
     s = f'\nClasses\tAcc\n'
     for name, acc_tmp in zip(cfg.classes, accs):
         s += '{:10}: {:3.2f}%\n'.format(name, acc_tmp)
-    s += f'E@{epoch}\tOA: {oa:3.2f}\tmAcc: {macc:3.2f}\n'
+    s += f'E@{epoch}\tOA: {oa:3.2f}\tmAcc: {macc:3.2f}\n F1: {f1:3.2f}\n'
     logging.info(s)
 
 
@@ -124,21 +124,21 @@ def main(gpu, cfg, profile=False):
         if cfg.mode == 'resume':
             resume_checkpoint(cfg, model, optimizer, scheduler,
                               pretrained_path=cfg.pretrained_path)
-            macc, oa, accs, cm = validate_fn(model, val_loader, cfg)
-            print_cls_results(oa, macc, accs, cfg.start_epoch, cfg)
+            macc, oa, accs, cm, f1 = validate_fn(model, val_loader, cfg)
+            print_cls_results(oa, macc, accs, cfg.start_epoch, cfg, f1)
         else:
             if cfg.mode == 'test':
                 # test mode
                 epoch, best_val = load_checkpoint(
                     model, pretrained_path=cfg.pretrained_path)
-                macc, oa, accs, cm = validate_fn(model, test_loader, cfg)
-                print_cls_results(oa, macc, accs, epoch, cfg)
+                macc, oa, accs, cm, f1 = validate_fn(model, test_loader, cfg)
+                print_cls_results(oa, macc, accs, epoch, cfg, f1)
                 return True
             elif cfg.mode == 'val':
                 # validation mode
                 epoch, best_val = load_checkpoint(model, cfg.pretrained_path)
-                macc, oa, accs, cm = validate_fn(model, val_loader, cfg)
-                print_cls_results(oa, macc, accs, epoch, cfg)
+                macc, oa, accs, cm, f1 = validate_fn(model, val_loader, cfg)
+                print_cls_results(oa, macc, accs, epoch, cfg, f1)
                 return True
             elif cfg.mode == 'finetune':
                 # finetune the whole model
@@ -164,28 +164,30 @@ def main(gpu, cfg, profile=False):
     logging.info(f"length of training dataset: {len(train_loader.dataset)}")
 
     # ===> start training
-    val_macc, val_oa, val_accs, best_val, macc_when_best, best_epoch = 0., 0., [], 0., 0., 0
+    val_macc, val_oa, val_accs, best_val, macc_when_best, best_epoch, f1_when_best = 0., 0., [], 0., 0., 0, 0.
     model.zero_grad()
     for epoch in range(cfg.start_epoch, cfg.epochs + 1):
         if cfg.distributed:
             train_loader.sampler.set_epoch(epoch)
         if hasattr(train_loader.dataset, 'epoch'):
             train_loader.dataset.epoch = epoch - 1
-        train_loss, train_macc, train_oa, _, _ = \
+        train_loss, train_macc, train_oa, _, _, _ = \
             train_one_epoch(model, train_loader,
                             optimizer, scheduler, epoch, cfg)
 
         is_best = False
         if epoch % cfg.val_freq == 0:
-            val_macc, val_oa, val_accs, val_cm = validate_fn(
+            val_macc, val_oa, val_accs, val_cm, val_f1 = validate_fn(
                 model, val_loader, cfg)
             is_best = val_oa > best_val
             if is_best:
                 best_val = val_oa
                 macc_when_best = val_macc
+
+                f1_when_best = val_f1
                 best_epoch = epoch
                 logging.info(f'Find a better ckpt @E{epoch}')
-                print_cls_results(val_oa, val_macc, val_accs, epoch, cfg)
+                print_cls_results(val_oa, val_macc, val_accs, epoch, cfg, val_f1)
 
         lr = optimizer.param_groups[0]['lr']
         logging.info(f'Epoch {epoch} LR {lr:.6f} '
@@ -196,7 +198,7 @@ def main(gpu, cfg, profile=False):
             writer.add_scalar('lr', lr, epoch)
             writer.add_scalar('val_oa', val_oa, epoch)
             writer.add_scalar('mAcc_when_best', macc_when_best, epoch)
-            writer.add_scalar('best_val', best_val, epoch)
+            writer.add_scalar('f1_when_best', f1_when_best, epoch)
             writer.add_scalar('epoch', epoch, epoch)
 
         if cfg.sched_on_epoch:
@@ -207,20 +209,22 @@ def main(gpu, cfg, profile=False):
                             is_best=is_best
                             )
     # test the last epoch
-    test_macc, test_oa, test_accs, test_cm = validate(model, test_loader, cfg)
-    print_cls_results(test_oa, test_macc, test_accs, best_epoch, cfg)
+    test_macc, test_oa, test_accs, test_cm, test_f1 = validate(model, test_loader, cfg)
+    print_cls_results(test_oa, test_macc, test_accs, best_epoch, cfg, test_f1)
     if writer is not None:
         writer.add_scalar('test_oa', test_oa, epoch)
         writer.add_scalar('test_macc', test_macc, epoch)
+        writer.add_scalar('test_f1', test_f1, epoch)
 
     # test the best validataion model
     best_epoch, _ = load_checkpoint(model, pretrained_path=os.path.join(
         cfg.ckpt_dir, f'{cfg.run_name}_ckpt_best.pth'))
-    test_macc, test_oa, test_accs, test_cm = validate(model, test_loader, cfg)
+    test_macc, test_oa, test_accs, test_cm, test_f1 = validate(model, test_loader, cfg)
     if writer is not None:
         writer.add_scalar('test_oa', test_oa, best_epoch)
         writer.add_scalar('test_macc', test_macc, best_epoch)
-    print_cls_results(test_oa, test_macc, test_accs, best_epoch, cfg)
+        writer.add_scalar('test_f1', test_f1, epoch)
+    print_cls_results(test_oa, test_macc, test_accs, best_epoch, cfg, test_f1)
 
     if writer is not None:
         writer.close()
@@ -286,7 +290,8 @@ def train_one_epoch(model, train_loader, optimizer, scheduler, epoch, cfg):
             pbar.set_description(f"Train Epoch [{epoch}/{cfg.epochs}] "
                                  f"Loss {loss_meter.val:.3f} Acc {cm.overall_accuray:.2f}")
     macc, overallacc, accs = cm.all_acc()
-    return loss_meter.avg, macc, overallacc, accs, cm
+    F1 = cm.macro_f1
+    return loss_meter.avg, macc, overallacc, accs, cm, F1
 
 
 @torch.no_grad()
@@ -310,4 +315,6 @@ def validate(model, val_loader, cfg):
     if cfg.distributed:
         dist.all_reduce(tp), dist.all_reduce(count)
     macc, overallacc, accs = cm.cal_acc(tp, count)
-    return macc, overallacc, accs, cm
+    F1 = cm.macro_f1
+
+    return macc, overallacc, accs, cm, F1
